@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>书城管理系统 - 我的借阅</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', sans-serif; background: #f0f2f5; min-height: 100vh; }
+        .navbar {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white; padding: 0 30px;
+            display: flex; align-items: center; justify-content: space-between;
+            height: 60px; box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+        }
+        .navbar h1 { font-size: 20px; font-weight: 600; }
+        .navbar .user-info { display: flex; align-items: center; gap: 15px; font-size: 14px; }
+        .navbar .user-info a {
+            color: white; text-decoration: none; padding: 6px 16px;
+            background: rgba(255,255,255,0.15); border-radius: 6px;
+            transition: background 0.3s;
+        }
+        .navbar .user-info a:hover { background: rgba(255,255,255,0.3); }
+        .main-content { max-width: 1000px; margin: 25px auto; padding: 0 20px; }
+        .page-title {
+            font-size: 22px; color: #2c3e50; margin-bottom: 20px;
+            padding-bottom: 12px; border-bottom: 2px solid #eee;
+        }
+        .error-msg {
+            background: #fdecea; color: #e74c3c; padding: 10px 14px;
+            border-radius: 8px; font-size: 13px; margin-bottom: 20px;
+            border-left: 4px solid #e74c3c;
+        }
+        .success-msg {
+            background: #eafaf1; color: #27ae60; padding: 10px 14px;
+            border-radius: 8px; font-size: 13px; margin-bottom: 20px;
+            border-left: 4px solid #27ae60;
+        }
+        .table-container {
+            background: white; border-radius: 12px; overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        table { width: 100%; border-collapse: collapse; }
+        thead { background: #f8f9fa; }
+        th { padding: 14px 16px; text-align: left; font-size: 13px;
+            color: #666; font-weight: 600; border-bottom: 2px solid #eee; }
+        td { padding: 12px 16px; font-size: 14px; color: #333;
+            border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+        tr:hover { background: #f8f9fa; }
+        .status-borrowed {
+            display: inline-block; padding: 3px 10px; border-radius: 12px;
+            font-size: 12px; background: #fef5e7; color: #e67e22;
+        }
+        .status-returned {
+            display: inline-block; padding: 3px 10px; border-radius: 12px;
+            font-size: 12px; background: #eafaf1; color: #27ae60;
+        }
+        .btn { padding: 6px 14px; border: none; border-radius: 6px;
+            font-size: 13px; cursor: pointer; font-weight: 600; transition: all 0.3s; }
+        .btn-return { background: #3498db; color: white; }
+        .btn-return:hover { background: #2980b9; }
+        .btn-back { background: #95a5a6; color: white; text-decoration: none;
+            display: inline-flex; align-items: center; padding: 8px 18px;
+            border-radius: 8px; font-size: 14px; margin-bottom: 15px; }
+        .btn-back:hover { background: #7f8c8d; }
+        .empty-tip { text-align: center; padding: 50px; color: #aaa; font-size: 16px; }
+        .book-link { color: #3498db; text-decoration: none; }
+        .book-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+<div class="navbar">
+    <h1>书城管理系统</h1>
+    <div class="user-info">
+        <span id="welcomeUser">欢迎</span>
+        <a th:href="@{/books}">图书列表</a>
+        <a th:href="@{/logout}">退出登录</a>
+    </div>
+</div>
+
+<div class="main-content">
+    <a th:href="@{/books}" class="btn btn-back">← 返回图书列表</a>
+    <h2 class="page-title">我的借阅记录</h2>
+
+    <div th:if="${error}" class="error-msg" th:text="${error}"></div>
+
+    <div class="table-container">
+        <table th:if="${!#lists.isEmpty(records)}">
+            <thead>
+                <tr>
+                    <th>图书名称</th>
+                    <th>作者</th>
+                    <th>借阅时间</th>
+                    <th>归还时间</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="record : ${records}">
+                    <td>
+                        <a class="book-link"
+                           th:if="${record.book != null}"
+                           th:href="@{/books/detail/{id}(id=${record.book.id})}"
+                           th:text="${record.book.bookName}">书名</a>
+                        <span th:if="${record.book == null}">已删除</span>
+                    </td>
+                    <td th:text="${record.book != null ? record.book.author : '-'}"></td>
+                    <td th:text="${#temporals.format(record.borrowTime, 'yyyy-MM-dd HH:mm')}"></td>
+                    <td th:text="${record.returnTime != null ? #temporals.format(record.returnTime, 'yyyy-MM-dd HH:mm') : '-'}"></td>
+                    <td>
+                        <span th:if="${record.status == 'borrowed'}" class="status-borrowed">借阅中</span>
+                        <span th:if="${record.status == 'returned'}" class="status-returned">已归还</span>
+                    </td>
+                    <td>
+                        <form th:if="${record.status == 'borrowed'}"
+                              th:action="@{/borrow/return/{id}(id=${record.id})}" method="post" style="display:inline;">
+                            <button type="submit" class="btn btn-return" onclick="return confirm('确定要归还该图书吗？')">归还</button>
+                        </form>
+                        <span th:if="${record.status == 'returned'}" style="color:#aaa; font-size:13px;">已归还</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <div th:if="${#lists.isEmpty(records)}" class="empty-tip">暂无借阅记录，快去<a th:href="@{/books}" style="color:#3498db;">图书列表</a>借阅吧！</div>
+    </div>
+</div>
+
+<script>
+    function getCookie(name) {
+        var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+        return match ? decodeURIComponent(match[2]) : '';
+    }
+    var nickname = getCookie('nickname');
+    if (nickname) {
+        document.getElementById('welcomeUser').textContent = '欢迎，' + nickname;
+    }
+</script>
+</body>
+</html>

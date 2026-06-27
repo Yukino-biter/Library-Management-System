@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>书城管理系统 - 图书管理</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', sans-serif; background: #f0f2f5; min-height: 100vh; }
+        /* 顶部导航 */
+        .navbar {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white; padding: 0 30px;
+            display: flex; align-items: center; justify-content: space-between;
+            height: 60px; box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+        }
+        .navbar h1 { font-size: 20px; font-weight: 600; }
+        .navbar .user-info { display: flex; align-items: center; gap: 15px; font-size: 14px; }
+        .navbar .user-info a {
+            color: white; text-decoration: none; padding: 6px 16px;
+            background: rgba(255,255,255,0.15); border-radius: 6px;
+            transition: background 0.3s;
+        }
+        .navbar .user-info a:hover { background: rgba(255,255,255,0.3); }
+        /* 主内容区 */
+        .main-content { max-width: 1200px; margin: 25px auto; padding: 0 20px; }
+        /* 搜索栏 */
+        .search-bar {
+            background: white; padding: 20px 25px; border-radius: 12px;
+            margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            display: flex; align-items: center; gap: 15px; flex-wrap: wrap;
+        }
+        .search-bar label { font-size: 14px; color: #555; font-weight: 600; }
+        .search-bar input, .search-bar select {
+            padding: 9px 14px; border: 1px solid #ddd; border-radius: 8px;
+            font-size: 14px; outline: none; transition: border-color 0.3s;
+        }
+        .search-bar input:focus, .search-bar select:focus { border-color: #3498db; }
+        .search-bar input { width: 200px; }
+        .btn { padding: 9px 20px; border: none; border-radius: 8px; font-size: 14px;
+            cursor: pointer; font-weight: 600; transition: all 0.3s; }
+        .btn-search { background: #3498db; color: white; }
+        .btn-search:hover { background: #2980b9; }
+        .btn-reset { background: #95a5a6; color: white; }
+        .btn-reset:hover { background: #7f8c8d; }
+        .btn-add { background: #27ae60; color: white; }
+        .btn-add:hover { background: #219a52; }
+        .btn-edit { background: #f39c12; color: white; padding: 6px 14px; font-size: 13px; }
+        .btn-edit:hover { background: #d68910; }
+        .btn-delete { background: #e74c3c; color: white; padding: 6px 14px; font-size: 13px; }
+        .btn-delete:hover { background: #c0392b; }
+        .btn-detail { background: #8e44ad; color: white; padding: 6px 14px; font-size: 13px; }
+        .btn-detail:hover { background: #7d3c98; }
+        .btn-borrow { background: #2ecc71; color: white; padding: 6px 14px; font-size: 13px; }
+        .btn-borrow:hover { background: #27ae60; }
+        /* 操作栏 */
+        .action-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .action-bar .count { font-size: 14px; color: #7f8c8d; }
+        /* 表格 */
+        .table-container {
+            background: white; border-radius: 12px; overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        table { width: 100%; border-collapse: collapse; }
+        thead { background: #f8f9fa; }
+        th { padding: 14px 16px; text-align: left; font-size: 13px;
+            color: #666; font-weight: 600; border-bottom: 2px solid #eee; }
+        td { padding: 12px 16px; font-size: 14px; color: #333;
+            border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+        tr:hover { background: #f8f9fa; }
+        .actions { display: flex; gap: 8px; }
+        .empty-tip { text-align: center; padding: 50px; color: #aaa; font-size: 16px; }
+        .book-name-link {
+            color: #3498db; text-decoration: none; font-weight: 500;
+        }
+        .book-name-link:hover { text-decoration: underline; }
+        .category-tag {
+            display: inline-block; padding: 3px 10px; border-radius: 12px;
+            font-size: 12px; background: #eaf2fd; color: #2980b9;
+        }
+        .price { color: #e74c3c; font-weight: 600; }
+        .msg-success {
+            background: #eafaf1; color: #27ae60; padding: 12px 18px;
+            border-radius: 8px; font-size: 14px; margin-bottom: 15px;
+            border-left: 4px solid #27ae60; font-weight: 600;
+        }
+        .msg-error {
+            background: #fdecea; color: #e74c3c; padding: 12px 18px;
+            border-radius: 8px; font-size: 14px; margin-bottom: 15px;
+            border-left: 4px solid #e74c3c; font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+<!-- 顶部导航 -->
+<div class="navbar">
+    <h1>书城管理系统</h1>
+    <div class="user-info">
+        <span id="welcomeUser">欢迎</span>
+        <a th:if="${role != 'admin'}" th:href="@{/borrow/my}">我的借阅</a>
+        <a th:if="${role == 'admin'}" th:href="@{/borrow/all}">借阅管理</a>
+        <a th:href="@{/logout}">退出登录</a>
+    </div>
+</div>
+
+<div class="main-content">
+    <!-- 提示信息 -->
+    <div th:if="${success}" class="msg-success" th:text="${success}"></div>
+    <div th:if="${error}" class="msg-error" th:text="${error}"></div>
+
+    <!-- 搜索栏 -->
+    <div class="search-bar">
+        <form th:action="@{/books}" method="get" style="display:flex; align-items:center; gap:15px; flex-wrap:wrap;">
+            <label>书名：</label>
+            <input type="text" name="bookName" placeholder="输入书名模糊搜索" th:value="${bookName}">
+            <label>分类：</label>
+            <select name="category">
+                <option value="">全部分类</option>
+                <option th:each="cat : ${categories}" th:value="${cat}" th:text="${cat}"
+                        th:selected="${cat == category}"></option>
+            </select>
+            <button type="submit" class="btn btn-search">搜索</button>
+            <a th:href="@{/books}" class="btn btn-reset">重置</a>
+        </form>
+    </div>
+
+    <!-- 操作栏 -->
+    <div class="action-bar">
+        <span class="count">共 <strong th:text="${#lists.size(books)}">0</strong> 本图书</span>
+        <a th:if="${role == 'admin'}" th:href="@{/books/add}" class="btn btn-add">+ 新增图书</a>
+    </div>
+
+    <!-- 图书列表 -->
+    <div class="table-container">
+        <table th:if="${!#lists.isEmpty(books)}">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>图书名称</th>
+                    <th>作者</th>
+                    <th>出版社</th>
+                    <th>分类</th>
+                    <th>价格</th>
+                    <th>库存</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="book : ${books}">
+                    <td th:text="${book.id}"></td>
+                    <td>
+                        <a class="book-name-link"
+                           th:href="@{/books/detail/{id}(id=${book.id})}"
+                           th:text="${book.bookName}"></a>
+                    </td>
+                    <td th:text="${book.author}"></td>
+                    <td th:text="${book.publisher ?: '-'}"></td>
+                    <td><span class="category-tag" th:text="${book.category ?: '-'}"></span></td>
+                    <td class="price" th:text="'¥' + ${book.price}"></td>
+                    <td th:text="${book.stock}"></td>
+                    <td>
+                        <div class="actions">
+                            <a class="btn btn-detail" th:href="@{/books/detail/{id}(id=${book.id})}">详情</a>
+                            <!-- 普通用户显示借阅按钮 -->
+                            <form th:if="${role != 'admin'}" th:action="@{/borrow/do/{id}(id=${book.id})}" method="post" style="display:inline;">
+                                <button type="submit" class="btn btn-borrow">借阅</button>
+                            </form>
+                            <!-- 管理员显示修改和删除按钮 -->
+                            <a th:if="${role == 'admin'}" class="btn btn-edit" th:href="@{/books/edit/{id}(id=${book.id})}">修改</a>
+                            <form th:if="${role == 'admin'}" th:action="@{/books/delete/{id}(id=${book.id})}" method="post"
+                                  style="display:inline;"
+                                  onsubmit="return confirm('确定要删除该图书吗？')">
+                                <button type="submit" class="btn btn-delete">删除</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <div th:if="${#lists.isEmpty(books)}" class="empty-tip">暂无图书数据</div>
+    </div>
+</div>
+
+<script>
+    // 从Cookie读取昵称显示
+    function getCookie(name) {
+        var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+        return match ? decodeURIComponent(match[2]) : '';
+    }
+    var nickname = getCookie('nickname');
+    if (nickname) {
+        document.getElementById('welcomeUser').textContent = '欢迎，' + nickname;
+    }
+</script>
+</body>
+</html>
